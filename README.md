@@ -13,7 +13,7 @@ Validates your data from pre defined schema or from single function
         "bio"     => ["name" => "Name"      , "types" => ["!js","!php" ]],       // will check if contains php or js script
         "add"     => ["name" => "Additional", "types" => "array", "check" => [   // it's possible to nest schemats
             "indexes" => [
-              "created" => ["types" => "date"]
+              "created" => ["types" => "date"]                                   // name is optional
             ],
             "types"   => ["string","int"]                                         // check if whole array contains only string or ints except "created"
           ]
