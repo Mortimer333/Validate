@@ -15,7 +15,7 @@ Validates your data from pre defined schema or from single function
             "indexes" => [
               "created" => ["types" => "date"]                                   // name is optional
             ],
-            "types"   => ["string","int"]                                         // check if whole array contains only string or ints except "created"
+            "types"   => ["string","int"]                                        // check if whole array contains only strings or ints except "created" variable
           ]
         ]
       ],
