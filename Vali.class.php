@@ -132,8 +132,7 @@ class Vali
 
         if ( Vali::Array( $type ) ) {
 
-          if ( !isset($type["name"]) )
-            return Vali::Error("`" . $nVar . "` has no name.");
+          if ( !isset($type["name"]) ) $type["name"] = false;
 
           if ( !isset($type["types"]) )
             return Vali::Error("`" . $nVar . "` has no allowed types.");
@@ -293,7 +292,7 @@ class Vali
 
     if (!$is_date) {
       if (is_string($name)) return Vali::Error("`" . $name . "` is not a date.");
-      else                  return Vali::Error("Date is not a date.");
+      else                  return Vali::Error("Data is not a date.");
     }
 
     return Vali::Success();
@@ -362,7 +361,7 @@ class Vali
 
 
 
-  public static function Assoc($var, $name = false, $empty = true, $reverse = false) : bool
+  public static function Assoc($var, $name = false, $empty = true, $reverse = false)
   {
 
     if (!isset($var)) {
@@ -438,8 +437,8 @@ class Vali
     $pos = strpos($var,"<?");
 
     if ($reverse && $pos !== false) {
-      if (is_string($name)) return Vali::Error("`" . $name . "` caontains php script.");
-      else                  return Vali::Error("Data caontains php script.");
+      if (is_string($name)) return Vali::Error("`" . $name . "` contains php script.");
+      else                  return Vali::Error("Data contains php script.");
     } elseif (!$reverse && $pos === false) {
       if (is_string($name)) return Vali::Error("`" . $name . "` doesn't contain php script.");
       else                  return Vali::Error("Data doesn't contain php script.");
@@ -447,12 +446,6 @@ class Vali
 
     return Vali::Success();
 
-  }
-
-  public static function Specs($specs)
-  {
-
-    return Vali::Success();
   }
 
 }
