@@ -35,7 +35,7 @@ Validates your data from pre defined schema or from single function
     ]
    ];
 
-  if(!Vali::date($data,$spec)) print_r(Vali::$_LAST_ERROR);
+  if(!Vali::date($data,$spec)) print_r(Vali::GetError());
 ```
 
 # How to use 
@@ -46,7 +46,7 @@ All functions are static so you could call them anywhere, anytime. If you wanna 
 
 ## Schema
 
-Schema is predefined structure of data you want to validate. It helps if recive multiple, nested variables in your API and don't wanna create hundreds of ifs to validate them. 
+Schema is predefined structure of data you want to validate. It helps if you recive multiple, nested variables in your API and don't wanna create hundreds of ifs to validate them. 
 
 Structure is divided into _indexed variables_ and _loose ones_. The indexed are validated first and you can set them in check->indexes (as shown above). You can assign them names (for geting clearer errors) and types. Available types :
  - int
@@ -61,11 +61,11 @@ Structure is divided into _indexed variables_ and _loose ones_. The indexed are 
  - js (will return true if string contains javascript)
  - php (will return true if string contains php)
 
-It's possible to check if data isn't something. Just add ! before type and it will revers it. Example: `[..] 'desc' => ['name' => 'Description', 'types' => ['!js','!php']] [..]`. Not it will return false if desc contains any js or php.
+It's possible to check if data isn't something. Just add `!` before type and it will revers it. Example: `[..] 'desc' => ['name' => 'Description', 'types' => ['!js','!php']] [..]`. Now it will return false if `desc` contains any js or php.
 
-If you don't want to use `string_empty` because all your strings can be empty just change the default setting for checking them `$_STRING_EMPTY` to true. It wil change behaviur of String function to return true even if string is empty. (ONLY WORKS WHEN USING SCHEMA)
+If you don't want to use `string_empty` because all your strings can be empty just change the default setting for checking them `$_STRING_EMPTY` to true. It wil change behaviour of String function to return true even if string is empty. (WORKS ONLY WHEN USING SCHEMA)
 
-And lastly errors: when error occurrs (when variable isn't valid or doesn't exist) apropriate error will be saved into `$_LAST_ERROR` as array ['error' => 'Error occurred!']. It happens by `Vali::Error` function so if you want to change it fill free to.
+And lastly errors: when error occurrs (when variable isn't valid or doesn't exist) apropriate error will be saved into `$_LAST_ERROR` as array ['error' => 'Error occurred!']. To get error back use `Vali::GetError()`.
 
 ## Dynamic type assign
 
@@ -88,7 +88,7 @@ $spec = [
     "data" => 'a',
   ];
 
-  if(!Vali::date($data,$spec)) print_r(Vali::$_LAST_ERROR);
+  if(!Vali::date($data,$spec)) print_r(Vali::GetError());
   
   // output : Array ( [error] => `Data` is not a number. ) 
 ```
