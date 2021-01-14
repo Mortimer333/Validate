@@ -4,11 +4,16 @@ class Vali
 
   public static $_STRING_EMPTY = false;     // defines is string can be empty
 
-  public static $_LAST_ERROR = "";
+  private static $_LAST_ERROR = "";
+
+  public static function GetError()
+  {
+    return self::$_LAST_ERROR; 
+  }
 
   public static function Error($mes)
   {
-    Vali::$_LAST_ERROR = array("error" => $mes);
+    self::$_LAST_ERROR = array("error" => $mes);
     return false;
   }
 
