@@ -96,9 +96,6 @@ class Vali
   public static function Check( $specs, $vars, $name = false, $reverse = false )
   {
 
-    $val = Vali::Specs($specs); // does nothing, can't remember what should it do, leave it for now
-    if ( !$val ) return $val;
-
     if ( !Vali::Array( $vars, $name ) ) return false;
 
     if ( !isset( $specs['types'] ) ) {
@@ -211,8 +208,8 @@ class Vali
     }
 
     if (!is_numeric($var)) {
-      if (is_string($name)) return Vali::Error("`" . $name . "` is not liczbą.");
-      else                  return Vali::Error("Data is not liczbą.");
+      if (is_string($name)) return Vali::Error("`" . $name . "` is not a number.");
+      else                  return Vali::Error("Data is not a number.");
     }
 
     if (filter_var($var, FILTER_VALIDATE_INT) === false) {
@@ -262,7 +259,7 @@ class Vali
 
     if (!is_numeric($var)) {
       if (is_string($name)) return Vali::Error("`" . $name . "` is not number.");
-      else                  return Vali::Error("Data is not liczbą.");
+      else                  return Vali::Error("Data is not a number.");
     }
 
     if (filter_var($var, FILTER_VALIDATE_FLOAT) === false) {
