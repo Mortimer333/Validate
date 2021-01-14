@@ -67,6 +67,32 @@ If you don't want to use `string_empty` because all your strings can be empty ju
 
 And lastly errors: when error occurrs (when variable isn't valid or doesn't exist) apropriate error will be saved into `$_LAST_ERROR` as array ['error' => 'Error occurred!']. It happens by `Vali::Error` function so if you want to change it fill free to.
 
+## Dynamic type assign
+
+What's cool is that you can change the validated type of variable by sending diffrent data and using keyword `this`. The script will look out in current scope for indicated data and use it contents as `types`. Example :
+
+```php
+$spec = [
+    "check" => [
+      "indexes" => [
+        "type" => ["name" => "Type of sent data", "types" => "string"   ],
+        "data" => ["name" => "Data"             , "types" => "this.type"],
+
+      ],
+      "types"   => []
+    ]
+  ];
+
+  $data = [
+    "type" => 'int',
+    "data" => 'a',
+  ];
+
+  if(!Vali::date($data,$spec)) print_r(Vali::$_LAST_ERROR);
+  
+  // output : Array ( [error] => `Data` is not a number. ) 
+```
+
 # FUNCTIONS
 
 ## Legend:
