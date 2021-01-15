@@ -8,7 +8,7 @@ class Vali
 
   public static function GetError()
   {
-    return self::$_LAST_ERROR; 
+    return self::$_LAST_ERROR;
   }
 
   public static function Error($mes)
@@ -39,6 +39,12 @@ class Vali
     switch ($dir) {
       case 'check'   :
         $results = Vali::Check  ($value, $variable, $name, $reverse);
+        break;
+      case 'mail'    :
+        $results = Vali::Mail   ($variable, $name, $reverse);
+        break;
+      case 'json'    :
+        $results = Vali::JSON   ($variable, $name, $reverse);
         break;
       case 'array'   :
         $results = Vali::Array  ($variable, $name, true, $reverse);
@@ -448,6 +454,51 @@ class Vali
 
     return Vali::Success();
 
+  }
+
+  public static function JSON( $var, $name = false, $reverse = false )
+  {
+    if (!isset($var)) {
+      if (is_string($name)) return Vali::Error("`" . $name . "` not found.");
+      else                  return Vali::Error("Data not found - JSON.");
+    }
+
+    $json = json_decode($var);
+    $val  = $json && $var != $json;
+
+    if ($reverse && $val) {
+      if (is_string($name)) return Vali::Error("`" . $name . "` is of illegal format - JSON.");
+      else                  return Vali::Error("Data is of illegal format - JSON.");
+    }
+
+    if (!$reverse && !$val) {
+      if (is_string($name)) return Vali::Error("`" . $name . "` is not an JSON.");
+      else                  return Vali::Error("Data is not an JSON.");
+    }
+
+    return Vali::Success();
+  }
+
+  public static function Mail( $var, $name = false, $reverse = false )
+  {
+    if (!isset($var)) {
+      if (is_string($name)) return Vali::Error("`" . $name . "` not found.");
+      else                  return Vali::Error("Data not found - JSON.");
+    }
+
+    $val = filter_var($var, FILTER_VALIDATE_EMAIL);
+
+    if ($reverse && $val) {
+      if (is_string($name)) return Vali::Error("`" . $name . "` is a valid mail.");
+      else                  return Vali::Error("Data is a valid mail.");
+    }
+
+    if (!$reverse && !$val) {
+      if (is_string($name)) return Vali::Error("`" . $name . "` is an invalid mail.");
+      else                  return Vali::Error("Data is is an invalid mail.");
+    }
+
+    return Vali::Success();
   }
 
 }
