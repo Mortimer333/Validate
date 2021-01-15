@@ -113,3 +113,5 @@ $spec = [
  - `Vali::Object($var, $name = false, $reverse = false)` - check if `$var` is object
  - `Vali::JS($var, $name = false, $reverse = false)` - check if `$var` contains javascript [EXPERIMENTAL] (work in progress)
  - `Vali::PHP($var, $name = false, $reverse = false)` - check if `$var` contains php [EXPERIMENTAL] (work in progress)
+ - `Vali::JSON($var, $name = false, $reverse = false)` - check if `$var` is of JSON format 
+ - `Vali::Mail($var, $name = false, $reverse = false)` - check if `$var` is valid e-mail 
