@@ -36,6 +36,8 @@ class Vali
 
     $results = true;
 
+    $dir = mb_strtolower($dir);
+    
     switch ($dir) {
       case 'check'   :
         $results = Vali::Check  ($value, $variable, $name, $reverse);
