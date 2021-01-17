@@ -60,6 +60,8 @@ Structure is divided into _indexed variables_ and _loose ones_. The indexed are 
  - null
  - js (will return true if string contains javascript)
  - php (will return true if string contains php)
+ - mail
+ - json
 
 It's possible to check if data isn't something. Just add `!` before type and it will revers it. Example: `[..] 'desc' => ['name' => 'Description', 'types' => ['!js','!php']] [..]`. Now it will return false if `desc` contains any js or php.
 
