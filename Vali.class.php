@@ -1,504 +1,377 @@
 <?php
 class Vali
 {
+  /**  @var bool   _STRING_EMPTY Default setting for checking if string is empty, cuz empty string might mean a lot in php */
+  public  static $_STRING_EMPTY = false;
 
-  public static $_STRING_EMPTY = false;     // defines is string can be empty
-
+  /**  @var string _LAST_ERROR Holder of last error in readable form */
   private static $_LAST_ERROR = "";
 
-  public static function GetError()
+  /**  @var array _DIR Contains current directory */
+  private static $_DIR = [];
+
+  public static function GetError() : string
   {
     return self::$_LAST_ERROR;
   }
 
-  public static function Error($mes)
+  public static function Error( string $mes ) : bool
   {
-    self::$_LAST_ERROR = array("error" => $mes);
+    Vali::$_LAST_ERROR = $mes;
+    Vali::$_DIR        = []; // here we clear _DIR so next check will have clear directory
     return false;
   }
 
-  public static function Success()
+  public static function Success() : bool
   {
     return true;
   }
 
-  public static function Ctrl( $value, $variable, $key, $name = false)
-  {
-         if ( is_string ( $key ) ) $dir = $key  ;
-    else if ( is_numeric( $key ) ) $dir = $value;
+  /**
+    *    Control center of reading schema
+    *
+    *    Thanks to this method we have an easy way to assign proper validation to given type of data and manipulate it.
+    *
+    *    @param mixin  variable [REQ] Data to be validated
+    *    @param string key      [REQ] Type of validation
+    *    @param string name     [OPT] Name of given value to be used with errors
+    *
+    *    @return bool
+    */
 
+  public static function Ctrl( $variable, string $key, ?string $name = null, ?string $dir = null ) : bool
+  {
+    if ( isset( Vali::$_DIR[$dir] ) ) {
+      return true; // if we have already validated this value just return true;
+    }
     $reverse = false;
 
-    if (strpos($dir,"!") !== false) {
+    if ( $key[0] === "!" ) {
       $reverse = true;
-      $dir = str_replace("!","",$dir);
+      $key = str_replace("!", "", $key );
     }
 
-    $results = true;
+    $key = mb_strtolower($key);
 
-    $dir = mb_strtolower($dir);
-    
-    switch ($dir) {
-      case 'check'   :
-        $results = Vali::Check  ($value, $variable, $name, $reverse);
+    switch ( $key ) {
+
+      case "js"      :
+        $results = Vali::JS   ( $variable, $name, $reverse );
         break;
-      case 'mail'    :
-        $results = Vali::Mail   ($variable, $name, $reverse);
-        break;
-      case 'json'    :
-        $results = Vali::JSON   ($variable, $name, $reverse);
-        break;
-      case 'array'   :
-        $results = Vali::Array  ($variable, $name, true, $reverse);
-        break;
+
       case 'int'     :
-        $results = Vali::Int    ( $variable, $name, $reverse );
+        $results = Vali::Int  ( $variable, $name, $reverse );
         break;
-      case 'decimal' :
-        $results = Vali::Decimal( $variable, $name, $reverse );
+
+      case "php"     :
+        $results = Vali::PHP  ( $variable, $name, $reverse );
         break;
-      case "bool"    :
-        $results = Vali::Bool   ( $variable, $name, $reverse );
-        break;
+
       case 'date'    :
-        $results = Vali::Day    ( $variable, $name, $reverse );
+        $results = Vali::Date ( $variable, $name, $reverse );
         break;
+
+      case 'mail'    :
+        $results = Vali::Mail ( $variable, $name, $reverse );
+        break;
+
+      case 'json'    :
+        $results = Vali::JSON ( $variable, $name, $reverse );
+        break;
+
+      case "bool"    :
+        $results = Vali::Bool ( $variable, $name, $reverse );
+        break;
+
+      case "null"    :
+        $results = Vali::NULL ( $variable, $name, $reverse );
+        break;
+
+      case 'array'   :
+        $results = Vali::Array  ( $variable, $name, true, $reverse                 );
+        break;
+
       case 'string'  :
         $results = Vali::String ( $variable, Vali::$_STRING_EMPTY, $name, $reverse );
         break;
+
       case 'string_empty':
-        $results = Vali::String ( $variable, true, $name, $reverse );
+        $results = Vali::String ( $variable, true, $name, $reverse                 );
         break;
+
       case 'object'  :
-        $results = Vali::Object ( $variable, $name, $reverse );
+        $results = Vali::Object ( $variable, $name, $reverse                       );
         break;
-      case "null"    :
-        $results = Vali::NULL   ( $variable, $name, $reverse );
+
+      case 'decimal' :
+        $results = Vali::Decimal( $variable, $name, $reverse                       );
         break;
-      case "js"      :
-        $results = Vali::JS     ( $variable, $name, $reverse );
-        break;
-      case "php"     :
-        $results = Vali::PHP    ( $variable, $name, $reverse );
-        break;
+
       default:
-        $results = Vali::Error  ( "Not recognized type - " . $dir );
+        $results = Vali::Error( "Not recognized type - " . $key );
         break;
+
     }
 
+    Vali::$_DIR[$dir] = true;
     return $results;
   }
 
-  public static function date( $variable, $specs, $name = false )
+  private static function ExecVal( array $data, array $set, $var, string $type, string $dir, string $key, ?string $name = null ) : bool
   {
-    if ( Vali::Array( $specs ) ) {
-      foreach ($specs as $key => $value) {
-        $res = Vali::Ctrl( $value, $variable, $key );
+    if ( substr( $type, 0, 5 ) == "this." ) {
+      $sub_key = substr( $type, 5 );
+
+      if ( !isset( $data[ $sub_key ] ) ) return Vali::Error( "$name type is ill defined, it points at not existing value as its type" );
+
+      $val  = $set [ $sub_key ]; // validate schema
+      $type = $data[ $sub_key ]; // type of choosen var AKA value of another var
+      $res  = Vali::Ctrl( $type, $val[0], $val[1] ?? null, $dir . $sub_key );
+      if ( !$res ) return false;
+    }
+    return Vali::Ctrl( $var, $type, $name, $dir . $key );
+  }
+
+  /**
+    *    Function starts recursive validation with given schema
+    *
+    *    @param array data Data to be validated by given schema
+    *    @param array data Schema to valide with
+    *
+    *    @return bool
+    */
+
+  public static function dat( array $schema, array $data, string $dir = "", bool $start = true ) : bool
+  {
+    if ( !isset( $schema["set"] ) && !isset( $schema["free"] ) ) return Vali::Error( "Schema doesn't contain neither set nor free values." );
+
+    $set  = $schema["set" ] ?? [];
+    $free = $schema["free"] ?? [];
+
+    // Validation of set (indexed) values
+    foreach ( $set as $key => $value ) {
+      $name  = $value[1] ?? $key;
+
+      if ( !isset( $data[$key] ) ) return Vali::Error( "$name was not found"                        );
+      if ( sizeof( $value ) == 0 ) return Vali::Error( "$name is ill defined, it doesn't have type" );
+
+      $types = $value[0  ];
+      $var   = $data[$key];
+
+      if ( !is_iterable( $types ) ) $types = [$types];
+
+      foreach ( $types as $type ) {
+        $res = Vali::ExecVal( $data, $set, $var, $type, $dir, $key, $name );
+      }
+
+      if ( !$res ) return $res;
+
+      if ( sizeof( $value ) >= 3 ) {
+
+        Vali::$_DIR[$dir . $key] = true;
+
+        // Notice that we are changing the type of value into array
+        // but which wont impact the check because we validated that this value
+        // has correct type so we can tranform it into array (from object I assume)
+        // and make it usable for the rest of methods
+        $res = Vali::dat( $value[2], (array) $var, $dir . $key . ".", false );
+        if ( !$res ) return $res;
+
+
+      }
+    }
+
+    // Delete all checked indexes so they wont be double checked with free types
+    foreach ($set as $key => $value) {
+      unset( $data[$key] );
+    }
+
+    // Validating free - non indexed values left after index check (set)
+    foreach ( $data as $var ) {
+      foreach ( $free as $type ) {
+        $res = Vali::Ctrl( $var, $type );
         if ( !$res ) return $res;
       }
-    } elseif ( Vali::String( $specs ) ) {
-      $res = Vali::Ctrl( $specs, $variable, $specs, $name );
-      if ( !$res ) return $res;
-    } else {
-      return Vali::Error("Specs must be the type of array or string.");
     }
+
+    if ( $start ) Vali::$_DIR = []; // here we clear _DIR just before the validation will end
 
     return Vali::Success();
   }
 
-  public static function Check( $specs, $vars, $name = false, $reverse = false )
+  public static function Int( $var, ?string $name = null, bool $reverse = false ) : bool
   {
+    $name = $name ?? "Data";
 
-    if ( !Vali::Array( $vars, $name ) ) return false;
-
-    if ( !isset( $specs['types'] ) ) {
-      if (is_string($name)) return Vali::Error("`" . $name . "` hasn't got any defined attributes.");
-      else                  return Vali::Error("Array hasn't got any defined attributes.");
-    }
-
-    if (isset($specs["indexes"])) {
-      if (!is_array($specs["indexes"])) {
-        if (is_string($name)) return Vali::Error("Passed index of new attributes isn't an array in `" . $name . "`.");
-        else                  return Vali::Error("Passed index of new attributes isn't an array.");
-      }
-
-      $i = 0;
-
-      foreach ($specs["indexes"] as $nVar => $type) {
-        $i++;
-
-        if ( !Vali::String( $nVar ) ) {
-          if ( Vali::String( $name ) ) return Vali::Error("One of the keys is in wrong format in `" . $name . "`.");
-          else                         return Vali::Error("One of the keys is in wrong format .");
-        }
-
-        // if element doesn't exists and has attribute exists set to false just skip it
-        if ( !isset( $vars[$nVar] ) && isset( $type['exists'] ) && $type['exists'] == false ) {
-          if ($i == sizeof($specs["indexes"])) return Vali::Success();
-          else                                 continue;
-        }
-
-        if ( !isset( $vars[$nVar] ) ) return Vali::Error("Not found - `" . Tools::EscHTML($nVar) . "`.");
-
-        if ( Vali::Array( $type ) ) {
-
-          if ( !isset($type["name"]) ) $type["name"] = false;
-
-          if ( !isset($type["types"]) )
-            return Vali::Error("`" . $nVar . "` has no allowed types.");
-
-          if (Vali::Array($type["types"])) {
-            foreach ($type["types"] as $i => $nType) {
-
-              if (strpos($nType,'this') !== false) {
-                $typeHoldName = str_replace("this.","",$nType);
-                $res = Vali::date( $vars[$nVar], $vars[$typeHoldName], $type["name"] );
-              } else $res = Vali::date( $vars[$nVar], $nType, $type["name"] );
-              if ($res) break;
-              if ( $i + 1 === sizeof($type["types"]) ) return $res;
-            }
-          } elseif (Vali::String($type["types"])) {
-
-
-            if (strpos($type["types"],'this') !== false) {
-              $typeHoldName = str_replace("this.","",$type["types"]);
-              $res = Vali::date( $vars[$nVar], $vars[$typeHoldName], $type["name"] );
-            } else $res = Vali::date( $vars[$nVar], $type["types"], $type["name"] );
-
-            if (!$res) return $res;
-
-          }
-
-          if ( isset( $type["check"] ) ) {
-            $res = Vali::date($vars[$nVar],["check" => $type["check"]]);
-            if ( !$res ) return $res;
-          }
-
-        } elseif ( Vali::String($type) ) {
-          $res = Vali::date( $vars[$nVar], $type, $nVar );
-          if (!$res) return $res;
-          unset($vars[$nVar]);
-        }
-      }
-    }
-
-    foreach ($vars as $var) {
-      if (is_array($specs['types'])) {
-        $index = 0;
-        foreach ($specs['types'] as $key => $spec) {
-          if (is_string($key)) {
-            $res = Vali::date($var,array($key => $spec));
-            if ($key === "array" && !$res) return $res;
-          } else $res = Vali::date($var,$spec);
-
-          if ($res) break;
-
-          if ($index + 1 == sizeof($specs['types'])) return $res;
-
-          $index++;
-        }
-      } else if (is_string($specs['types'])) {
-        $res = Vali::date($var,$specs['types']);
-        if (!$res) return $res;
-      }
-    }
-
+    if ( !isset( $var )                                                                      ) return Vali::Error("$name not found."                             );
+    if ( is_string( $var ) && $var != 0 && ltrim( $var,'-' )[0] == '0' && !$reverse          ) return Vali::Error("$name begins with 0, thus cannot be number."  );
+    if ( $reverse && is_numeric( $var ) && filter_var( $var, FILTER_VALIDATE_INT ) !== false ) return Vali::Error("$name is of an illegal type - natural number.");
+    if ( !is_numeric( $var )                                                                 ) return Vali::Error("$name is not a number."                       );
+    if ( filter_var( $var, FILTER_VALIDATE_INT ) === false                                   ) return Vali::Error("$name is not a natural number."               );
 
     return Vali::Success();
   }
 
-  public static function Int($var, $name = false, $reverse = false)
+  public static function String( $var, ?bool $empty = null, ?string $name = null, bool $reverse = false ) : bool
   {
+    $bool = $bool ?? Vali::$_STRING_EMPTY;
+    $name = $name ?? "Data";
 
-    if (!isset($var)) {
-      if (is_string($name)) return Vali::Error("`" . $name . "` not found.");
-      else                  return Vali::Error("Data not found - Int.");
-    }
-
-    if ($reverse && is_numeric($var) && filter_var($var, FILTER_VALIDATE_INT) !== false) {
-      if (is_string($name)) return Vali::Error("`" . $name . "` is of an illegal type - natural number.");
-      else                  return Vali::Error("Data is of an illegal type - natural number.");
-    }
-
-    if (!is_numeric($var)) {
-      if (is_string($name)) return Vali::Error("`" . $name . "` is not a number.");
-      else                  return Vali::Error("Data is not a number.");
-    }
-
-    if (filter_var($var, FILTER_VALIDATE_INT) === false) {
-      if (is_string($name)) return Vali::Error("`" . $name . "` is not natural number.");
-      else                  return Vali::Error("Data is not natural number.");
-    }
+    if ( !isset( $var )                ) return Vali::Error("$name not found."                     );
+    if ( $reverse && is_string( $var ) ) return Vali::Error("$name is of an illegal type - string.");
+    if ( !is_string( $var )            ) return Vali::Error("$name is not a string."               );
+    if ( !$empty && $var == ""         ) return Vali::Error("$name is empty."                      );
 
     return Vali::Success();
   }
 
-  public static function String($var, $empty = false, $name = false, $reverse = false)
+  public static function Decimal( $var, ?string $name = null, bool $reverse = false ) : bool
   {
-    if (!isset($var)) {
-      if (is_string($name)) return Vali::Error("`" . $name . "` not found.");
-      else                  return Vali::Error("Data not found - String.");
-    }
+    $name = $name ?? "Data";
 
-    if ($reverse && is_string($var)) {
-      if (is_string($name)) return Vali::Error("`" . $name . "` is of an illegal type - string.");
-      else                  return Vali::Error("Data is of an illegal type - string.");
-    }
-
-    if (!is_string($var)) {
-      if (is_string($name)) return Vali::Error("`" . $name . "` is not string.");
-      else                  return Vali::Error("Data is not string.");
-    }
-
-    if (!$empty && $var == "") {
-      if (is_string($name)) return Vali::Error("`" . $name . "` is empty.");
-      else                  return Vali::Error("String is empty.");
-    }
+    if ( !isset( $var )      ) return Vali::Error("$name not found."    );
+    if ( is_string( $var ) && $var != 0 && ltrim( $var,'-' )[0] == '0' && !$reverse            ) return Vali::Error("$name begins with 0, thus cannot be number.");
+    if ( !is_numeric( $var )                                                                   ) return Vali::Error("$name is not number."                       );
+    if ( $reverse && is_numeric( $var ) && filter_var( $var, FILTER_VALIDATE_FLOAT ) !== false ) return Vali::Error("$name is of an illegal type - decimal."     );
+    if ( filter_var( $var, FILTER_VALIDATE_FLOAT ) === false                                   ) return Vali::Error("$name is not decimal."                      );
 
     return Vali::Success();
   }
 
-  public static function Decimal($var, $name = false, $reverse = false)
+  public static function Date( $var, ?string $name = null, bool $reverse = false ) : bool
   {
-    if (!isset($var)) {
-      if (is_string($name)) return Vali::Error("`" . $name . "` not found.");
-      else                  return Vali::Error("Data not found - Decimal.");
-    }
-
-    if ($reverse && is_numeric($var) && filter_var($var, FILTER_VALIDATE_FLOAT) !== false) {
-      if (is_string($name)) return Vali::Error("`" . $name . "` is of an illegal type - decimal.");
-      else                  return Vali::Error("Data  is of an illegal type - decimal.");
-    }
-
-    if (!is_numeric($var)) {
-      if (is_string($name)) return Vali::Error("`" . $name . "` is not number.");
-      else                  return Vali::Error("Data is not a number.");
-    }
-
-    if (filter_var($var, FILTER_VALIDATE_FLOAT) === false) {
-      if (is_string($name)) return Vali::Error("`" . $name . "` is not decimal.");
-      else                  return Vali::Error("Data is not decimal.");
-    }
-
-    return Vali::Success();
-  }
-
-  public static function Day($var, $name = false, $reverse = false)
-  {
+    $name   = $name ?? "Data";
     $format = 'Y-m-d';
-    $d = DateTime::createFromFormat($format, $var);
+    $d      = \DateTime::createFromFormat( $format, $var );
+
     // The Y ( 4 digits year ) returns TRUE for any integer with any number of digits so changing the comparison from == to === fixes the issue.
-    $is_date = $d && $d->format($format) === $var;
+    $is_date = $d && $d->format( $format ) === $var;
 
-    if (!isset($var)) {
-      if (is_string($name)) return Vali::Error("`" . $name . "` not found.");
-      else                  return Vali::Error("Data not found - Day.");
-    }
-
-    if ($reverse && $is_date) {
-      if (is_string($name)) return Vali::Error("`" . $name . "` is of an illegal type - date.");
-      else                  return Vali::Error("Data  is of an illegal type - date.");
-    }
-
-    if (!$is_date) {
-      if (is_string($name)) return Vali::Error("`" . $name . "` is not a date.");
-      else                  return Vali::Error("Data is not a date.");
-    }
+    if ( !isset( $var )       ) return Vali::Error("$name not found."                   );
+    if ( $reverse && $is_date ) return Vali::Error("$name is of an illegal type - date.");
+    if ( !$is_date            )  return Vali::Error("$name is not a date."              );
 
     return Vali::Success();
   }
 
-  public static function Bool($var, $name = false, $reverse = false)
+  public static function Bool( $var, ?string $name = null, bool $reverse = false ) : bool
   {
-    if (!isset($var)) {
-      if (is_string($name)) return Vali::Error("`" . $name . "` not found.");
-      else                  return Vali::Error("Data not found - Bool.");
-    }
+    $name = $name ?? "Data";
 
-    if ($reverse && ($var === false || $var === true)) {
-      if (is_string($name)) return Vali::Error("`" . $name . "` is of an illegal type - logical.");
-      else                  return Vali::Error("Data  is of an illegal type - logical.");
-    }
-
-    if ($var !== false && $var !== true) {
-      if (is_string($name)) return Vali::Error("`" . $name . "` is not logical type.");
-      else                  return Vali::Error("Data is not logical type.");
-    }
+    if ( !isset( $var )                                  ) return Vali::Error("$name not found."                      );
+    if ( $reverse && ( $var === false || $var === true ) ) return Vali::Error("$name is of an illegal type - logical.");
+    if ( $var !== false && $var !== true                 ) return Vali::Error("$name is not logical type."            );
 
     return Vali::Success();
   }
 
-  public static function Null($var, $name = false, $reverse = false)
+  public static function Null( $var, ?string $name = null, bool $reverse = false ) : bool
   {
-    if ($reverse && $var === null) {
-      if (is_string($name)) return Vali::Error("`" . $name . "` is of an illegal type - NULL.");
-      else                  return Vali::Error("Data  is of an illegal type - NULL.");
-    }
+    $name = $name ?? "Data";
 
-    if ($var !== null) {
-      if (is_string($name)) return Vali::Error("`" . $name . "` is not NULL.");
-      else                  return Vali::Error("Data is not NULL.");
-    }
+    if ( $reverse && $var === null ) return Vali::Error("$name is of an illegal type - NULL.");
+    if ( $var !== null             ) return Vali::Error("$name is not NULL."                 );
 
     return Vali::Success();
   }
 
-  public static function Array($var, $name = false, $empty = true, $reverse = false)
+  public static function Array( $var, ?string $name = null, bool $empty = true, bool $reverse = false ) : bool
   {
+    $name = $name ?? "Data";
 
-    if (!isset($var)) {
-      if (is_string($name)) return Vali::Error("`" . $name . "` not found.");
-      else                  return Vali::Error("Data not found - Array.");
-    }
-
-    if ($reverse && is_array($var)) {
-      if (is_string($name)) return Vali::Error("`" . $name . "` is of an illegal type - array.");
-      else                  return Vali::Error("Data  is of an illegal type - array.");
-    }
-
-    if (!is_array($var)) {
-      if (is_string($name)) return Vali::Error("`" . $name . "` is not array.");
-      else                  return Vali::Error("Data is not array.");
-    }
-
-    if (!$empty && sizeof($var) === 0) {
-      if (is_string($name)) return Vali::Error("`" . $name . "` cannot be empty.");
-      else                  return Vali::Error("Array cannot be empty.");
-    }
+    if ( !isset( $var )                  ) return Vali::Error("$name not found."                    );
+    if ( $reverse && is_array( $var )    ) return Vali::Error("$name is of an illegal type - array.");
+    if ( !is_array( $var )               ) return Vali::Error("$name is not array."                 );
+    if ( !$empty && sizeof( $var ) === 0 ) return Vali::Error("$name cannot be empty."              );
 
     return Vali::Success();
   }
 
-
-
-  public static function Assoc($var, $name = false, $empty = true, $reverse = false)
+  public static function Assoc( $var, ?string $name = null, bool $empty = true, bool $reverse = false ) : bool
   {
+    $name = $name ?? "Data";
 
-    if (!isset($var)) {
-      if (is_string($name)) return Vali::Error("`" . $name . "` not found.");
-      else                  return Vali::Error("Data not found - Assoc.");
-    }
+    if ( !isset( $var ) ) return Vali::Error("$name not found.");
 
-    if ($reverse && (!is_array($var) || array() !== $var || array_keys($var) !== range(0, count($var) - 1))) {
-      if (is_string($name)) return Vali::Error("`" . $name . "` is of an illegal type - associative array.");
-      else                  return Vali::Error("Data  is of an illegal type - associative array.");
-    }
-
-    if (!is_array($var) || array() === $var || array_keys($var) === range(0, count($var) - 1)) {
-      if (is_string($name)) return Vali::Error("`" . $name . "` is not associative array.");
-      else                  return Vali::Error("Data is not associative array.");
-    }
-
-    if (!$empty && sizeof($var) === 0) {
-      if (is_string($name)) return Vali::Error("`" . $name . "` cannot be empty.");
-      else                  return Vali::Error("array cannot be empty.");
-    }
+    $is_ar = is_array( $var ) && array() !== $var && array_keys( $var ) !== range( 0, count($var) - 1 );
+    if ( $reverse && $is_ar              ) return Vali::Error("$name is of an illegal type - associative array.");
+    if ( !$is_ar                          ) return Vali::Error("$name is not associative array."                 );
+    if ( !$empty && sizeof( $var ) === 0 ) return Vali::Error("$name cannot be empty."                          );
 
     return Vali::Success();
 
   }
 
-  public static function Object($var, $name = false, $reverse = false)
+  public static function Object( $var, ?string $name = null, bool $reverse = false ) : bool
   {
-    if (!isset($var)) {
-      if (is_string($name)) return Vali::Error("`" . $name . "` not found.");
-      else                  return Vali::Error("Data not found - Object.");
-    }
+    $name = $name ?? "Data";
 
-    if ($reverse && is_object($var)) {
-      if (is_string($name)) return Vali::Error("`" . $name . "` is of an illegal type - object.");
-      else                  return Vali::Error("Data  is of an illegal type - object.");
-    }
-
-    if (!is_object($var)) {
-      if (is_string($name)) return Vali::Error("`" . $name . "` is not an object.");
-      else                  return Vali::Error("Data is not an object.");
-    }
+    if ( !isset( $var )                ) return Vali::Error("$name not found."                     );
+    if ( $reverse && is_object( $var ) ) return Vali::Error("$name is of an illegal type - object.");
+    if ( !is_object( $var )            ) return Vali::Error("$name is not an object."              );
 
     return Vali::Success();
   }
 
-  public static function JS($var, $name = false, $reverse = false)
+  public static function JS( $var, ?string $name = null, bool $reverse = false ) : bool
   {
-    if (!Vali::String($var, $name)) return false;
+    $name = $name ?? "Data";
+
+    if ( !Vali::String( $var, $name ) ) return false;
+
+    $var = preg_replace('/\s+/', '', $var );
+    $var = strtolower( $var );
+    $pos = strpos( $var,"<script" );
+
+        if ( $reverse  && $pos !== false ) return Vali::Error("$name contains js script."       );
+    elseif ( !$reverse && $pos === false ) return Vali::Error("$name doesn't contain js script.");
+
+    return Vali::Success();
+
+  }
+
+  public static function PHP( $var, ?string $name = null, bool $reverse = false ) : bool
+  {
+    $name = $name ?? "Data";
+
+    if ( !Vali::String( $var, $name ) ) return false;
 
     $var = preg_replace('/\s+/', '', $var);
-    $var = strtolower($var);
-    $pos = strpos($var,"<script");
+    $var = strtolower( $var );
+    $pos = strpos( $var, "<?" );
 
-    if ($reverse && $pos !== false) {
-      if (is_string($name)) return Vali::Error("`" . $name . "` contains js script.");
-      else                  return Vali::Error("Data contains js script.");
-    } elseif (!$reverse && $pos === false) {
-      if (is_string($name)) return Vali::Error("`" . $name . "` doesn't contain js script.");
-      else                  return Vali::Error("Data doesn't contain js script.");
-    }
+        if ( $reverse  && $pos !== false ) return Vali::Error("$name contains php script."       );
+    elseif ( !$reverse && $pos === false ) return Vali::Error("$name doesn't contain php script.");
 
     return Vali::Success();
 
   }
 
-  public static function PHP($var, $name = false, $reverse = false)
+  public static function JSON( $var, ?string $name = null, bool $reverse = false ) : bool
   {
-    if (!Vali::String($var, $name)) return false;
+    $name = $name ?? "Data";
 
-    $var = preg_replace('/\s+/', '', $var);
-    $var = strtolower($var);
-    $pos = strpos($var,"<?");
+    if ( !isset( $var ) ) return Vali::Error("$name not found.");
 
-    if ($reverse && $pos !== false) {
-      if (is_string($name)) return Vali::Error("`" . $name . "` contains php script.");
-      else                  return Vali::Error("Data contains php script.");
-    } elseif (!$reverse && $pos === false) {
-      if (is_string($name)) return Vali::Error("`" . $name . "` doesn't contain php script.");
-      else                  return Vali::Error("Data doesn't contain php script.");
-    }
-
-    return Vali::Success();
-
-  }
-
-  public static function JSON( $var, $name = false, $reverse = false )
-  {
-    if (!isset($var)) {
-      if (is_string($name)) return Vali::Error("`" . $name . "` not found.");
-      else                  return Vali::Error("Data not found - JSON.");
-    }
-
-    $json = json_decode($var);
+    $json = json_decode( $var );
     $val  = $json && $var != $json;
 
-    if ($reverse && $val) {
-      if (is_string($name)) return Vali::Error("`" . $name . "` is of illegal format - JSON.");
-      else                  return Vali::Error("Data is of illegal format - JSON.");
-    }
-
-    if (!$reverse && !$val) {
-      if (is_string($name)) return Vali::Error("`" . $name . "` is not an JSON.");
-      else                  return Vali::Error("Data is not an JSON.");
-    }
+    if ( $reverse  && $val  ) return Vali::Error("$name is of illegal format - JSON.");
+    if ( !$reverse && !$val ) return Vali::Error("$name is not an JSON."             );
 
     return Vali::Success();
   }
 
-  public static function Mail( $var, $name = false, $reverse = false )
+  public static function Mail( $var, ?string $name = null, bool $reverse = false ) : bool
   {
-    if (!isset($var)) {
-      if (is_string($name)) return Vali::Error("`" . $name . "` not found.");
-      else                  return Vali::Error("Data not found - JSON.");
-    }
+    $name = $name ?? "Data";
 
-    $val = filter_var($var, FILTER_VALIDATE_EMAIL);
+    if ( !isset( $var ) ) return Vali::Error("$name not found.");
 
-    if ($reverse && $val) {
-      if (is_string($name)) return Vali::Error("`" . $name . "` is a valid mail.");
-      else                  return Vali::Error("Data is a valid mail.");
-    }
+    $val = filter_var( $var, FILTER_VALIDATE_EMAIL );
 
-    if (!$reverse && !$val) {
-      if (is_string($name)) return Vali::Error("`" . $name . "` is an invalid mail.");
-      else                  return Vali::Error("Data is is an invalid mail.");
-    }
+    if ( $reverse  && $val  ) return Vali::Error("$name is a valid mail."   );
+    if ( !$reverse && !$val ) return Vali::Error("$name is an invalid mail.");
 
     return Vali::Success();
   }
