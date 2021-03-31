@@ -33,6 +33,16 @@ Validates your data from predefined schema or by single method
   if ( !Vali::dat( $data, $spec ) ) echo Vali::GetError();
 ```
 
+# Installation
+
+Installation method is via composer and its packagist package [validat/validat][d8e61dd1].
+
+  [d8e61dd1]: https://packagist.org/packages/validat/validat "validat/validat"
+
+```php
+  composer require validat/validat
+```
+
 # How to use
 
 ## Method
