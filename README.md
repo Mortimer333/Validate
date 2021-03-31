@@ -7,7 +7,7 @@ Validates your data from predefined schema or by single method
       "user_id" => [ "int"          , "ID"    ],
       "login"   => [ "string"       , "Login" ],
       "name"    => [ "string_empty" , "Name"  ],       
-      "bio"     => [ ["!js","!php" ], "Name"  ],       
+      "bio"     => [ ["!js","!php" ], "Bio"   ],       
       "add"     => [ "array"        , "Additional", [  
           "set" => [
             "created" => ["types" => "date"]           
