@@ -76,7 +76,7 @@
         $json = new stdClass();
         $json->a = "b";
       ?>
-      <?php foreach ([] as $method): ?>
+      <?php foreach ($methods as $method): ?>
         <h1 class="title">Vali::<?= $method; ?></h1>
         <div class="tests">
           <p> <span class="value">1</span> : <span class="result <?= Vali::$method(1) ? "true" : "false"; ?>"></span> </p>
@@ -99,35 +99,6 @@
           <p> <span class="value">"mail@mail.com"</span> : <span class="result <?= Vali::$method('mail@mail.com') ? "true" : "false"; ?>"></span> </p>
         </div>
       <?php endforeach; ?>
-      <?php
-        $spec = [
-          "set" => [
-            "value" => ["this.type","Wartość"],
-            "type"  => ["string"   ,"Typ"    ],
-            "array" => ["array", null, [
-              "set" => [
-                "array2" => [
-                  "array", null, [
-                    "free" => ["string"]
-                  ]
-                ]
-              ]
-            ]]
-          ]
-        ];
-        $data = [
-          "value" => 2,
-          "type"  => "int",
-          "array" => [
-            "array2" => [
-              "a"
-            ]
-          ]
-        ];
-        $res = Vali::dat($spec, $data);
-        if (!$res) echo Vali::GetError();
-        else  echo "Good";
-      ?>
     </div>
   </body>
 </html>
