@@ -1,0 +1,9 @@
+{
+    "name": "validate/validate",
+    "description" : "Validates your data from predefined schema or by single method",
+    "keywords": ["validation"],
+    "license": "GPL-2.0-only",
+    "autoload": {
+        "psr-4": { "Vali\\" : "src/" }
+    }
+}

@@ -1,4 +1,4 @@
-<?php require_once '../Vali.class.php'; ?>
+<?php require_once '../src/Vali.php'; ?>
 <!DOCTYPE html>
 <html lang="en" dir="ltr">
   <head>

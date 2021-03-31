@@ -1,8 +1,6 @@
 # Validate
 Validates your data from predefined schema or by single method
 
-# Example
-
 ```php
   $spec = [
     "set" => [
